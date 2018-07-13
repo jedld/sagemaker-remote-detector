@@ -125,6 +125,8 @@ def transformation():
     results = np.squeeze(results)
     top_k = results.argsort()[-5:][::-1]
 
+    os.remove(os.path.join('/tmp', filename))
+
     response = {}
     for i in top_k:
         response[labels[i]] = np.asscalar(results[i])
