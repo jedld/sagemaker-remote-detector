@@ -22,6 +22,7 @@ from werkzeug.utils import secure_filename
 prefix = '/opt'
 model_path = os.path.join(prefix, 'program')
 
+
 class DecimalEncoder(json.JSONEncoder):
     def _iterencode(self, o, markers=None):
         if isinstance(o, decimal.Decimal):
@@ -129,6 +130,7 @@ def ping():
 
 @app.route('/invocations', methods=['POST'])
 def transformation():
+    print(request.__dict__)
     algo = flask.request.form.get('algo','')
     imagefile = flask.request.files.get('imagefile', '')
 
