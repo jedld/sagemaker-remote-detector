@@ -19,8 +19,8 @@ import numpy as np
 from werkzeug.utils import secure_filename
 
 
-prefix = '/opt/ml/'
-model_path = os.path.join(prefix, 'model')
+prefix = '/opt'
+model_path = os.path.join(prefix, 'program')
 
 class DecimalEncoder(json.JSONEncoder):
     def _iterencode(self, o, markers=None):
