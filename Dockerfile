@@ -10,7 +10,7 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install -U pip
-RUN pip3 install -U tensorflow pandas flask gevent gunicorn && \
+RUN pip3 install -U tensorflow pandas  boto3 flask gevent gunicorn && \
         rm -rf /root/.cache
 
 ENV PYTHONUNBUFFERED=TRUE

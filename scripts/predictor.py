@@ -14,6 +14,9 @@ import tensorflow as tf
 import flask
 import json
 import pandas
+import base64
+import boto3
+import uuid
 from flask import Flask, request, redirect, url_for
 import numpy as np
 from werkzeug.utils import secure_filename
@@ -32,7 +35,7 @@ class DecimalEncoder(json.JSONEncoder):
             return (str(o) for o in [o])
         return super(DecimalEncoder, self)._iterencode(o, markers)
 
-def remote_detector_inference(imagefile):
+def remote_detector_inference(filename):
     input_layer = "input"
     output_layer = "final_result"
 
@@ -41,9 +44,7 @@ def remote_detector_inference(imagefile):
     input_mean = 128
     input_std = 128
 
-    filename = secure_filename(imagefile.filename)
-    imagefile.save(os.path.join('/tmp', filename))
-    t = read_tensor_from_image_file(os.path.join('/tmp', filename),
+    t = read_tensor_from_image_file(filename,
                                   input_height=input_height,
                                   input_width=input_width,
                                   input_mean=input_mean,
@@ -130,14 +131,16 @@ def ping():
 
 @app.route('/invocations', methods=['POST'])
 def transformation():
-    print(request.__dict__)
-    algo = flask.request.form.get('algo','')
-    imagefile = flask.request.files.get('imagefile', '')
+    raw_post = request.get_data()
 
-    response = {}
-    if algo == 'remote_finder':
-      response = remote_detector_inference(imagefile)
-    else:
-      response['error'] = 'unknown algo: ' + algo + ' should be [remote_finder,detect]'
+    filename = os.path.join('/tmp', str(uuid.uuid4()))
+    file = open(filename,'wb')
+    newFileByteArray = bytearray(base64.b64decode(raw_post))
+    file.write(newFileByteArray)
+    file.close
+
+
+    response = remote_detector_inference(filename)
+
 
     return flask.Response(response=json.dumps(response), status=200, mimetype='text/json')
