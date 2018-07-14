@@ -21,7 +21,6 @@ from werkzeug.utils import secure_filename
 
 prefix = '/opt/ml/'
 model_path = os.path.join(prefix, 'model')
-label_path = os.path.join(prefix, 'label')
 
 class DecimalEncoder(json.JSONEncoder):
     def _iterencode(self, o, markers=None):
@@ -114,7 +113,7 @@ def read_tensor_from_image_file(file_name, input_height=299, input_width=299,
 
 
 graph = load_graph(os.path.join(model_path, 'graph.pb'))
-labels = load_labels(os.path.join(label_path, 'labels.txt'))
+labels = load_labels(os.path.join(model_path, 'labels.txt'))
 
 # The flask app for serving predictions
 app = flask.Flask(__name__)
