@@ -32,6 +32,41 @@ class DecimalEncoder(json.JSONEncoder):
             return (str(o) for o in [o])
         return super(DecimalEncoder, self)._iterencode(o, markers)
 
+def remote_detector_inference(imagefile):
+    input_layer = "input"
+    output_layer = "final_result"
+
+    input_height = 224
+    input_width = 224
+    input_mean = 128
+    input_std = 128
+
+    filename = secure_filename(imagefile.filename)
+    imagefile.save(os.path.join('/tmp', filename))
+    t = read_tensor_from_image_file(os.path.join('/tmp', filename),
+                                  input_height=input_height,
+                                  input_width=input_width,
+                                  input_mean=input_mean,
+                                  input_std=input_std)
+
+    input_name = "import/" + input_layer
+    output_name = "import/" + output_layer
+    input_operation = graph.get_operation_by_name(input_name)
+    output_operation = graph.get_operation_by_name(output_name)
+
+    with tf.Session(graph=graph) as sess:
+        results = sess.run(output_operation.outputs[0],
+                        {input_operation.outputs[0]: t})
+    results = np.squeeze(results)
+    top_k = results.argsort()[-5:][::-1]
+
+    os.remove(os.path.join('/tmp', filename))
+
+    response = {}
+    for i in top_k:
+        response[labels[i]] = np.asscalar(results[i])
+    return response
+
 # A singleton for holding the model. This simply loads the model and holds it.
 # It has a predict function that does a prediction based on the model and the input data.
 def load_graph(model_file):
@@ -95,40 +130,13 @@ def ping():
 
 @app.route('/invocations', methods=['POST'])
 def transformation():
-    input_layer = "input"
-    output_layer = "final_result"
-
-    input_height = 224
-    input_width = 224
-    input_mean = 128
-    input_std = 128
-
+    algo = flask.request.form.get('algo','')
     imagefile = flask.request.files.get('imagefile', '')
 
-
-    filename = secure_filename(imagefile.filename)
-    imagefile.save(os.path.join('/tmp', filename))
-    t = read_tensor_from_image_file(os.path.join('/tmp', filename),
-                                  input_height=input_height,
-                                  input_width=input_width,
-                                  input_mean=input_mean,
-                                  input_std=input_std)
-
-    input_name = "import/" + input_layer
-    output_name = "import/" + output_layer
-    input_operation = graph.get_operation_by_name(input_name);
-    output_operation = graph.get_operation_by_name(output_name);
-
-    with tf.Session(graph=graph) as sess:
-        results = sess.run(output_operation.outputs[0],
-                        {input_operation.outputs[0]: t})
-    results = np.squeeze(results)
-    top_k = results.argsort()[-5:][::-1]
-
-    os.remove(os.path.join('/tmp', filename))
-
     response = {}
-    for i in top_k:
-        response[labels[i]] = np.asscalar(results[i])
+    if algo == 'remote_finder':
+      response = remote_detector_inference(imagefile)
+    else:
+      response['error'] = 'unknown algo: ' + algo + ' should be [remote_finder,detect]'
 
     return flask.Response(response=json.dumps(response), status=200, mimetype='text/json')
